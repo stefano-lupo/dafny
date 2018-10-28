@@ -1,25 +1,23 @@
 /* 
+	CS4504 - Formal Verification
+	Dr Vasileios Koutavas
+	Group Assignment 1 - String Manipulation
 	Stefano Lupo:		14334933 - 30 mins on Dafny setup, 1 hour on Dafny tutorial, 1 hour on assignment
-	Rowan Sutton:		99999999 - 	
+	Rowan Sutton:		13330793 - 30 mins on Dafny setup, 1 hour on Dafny tutorial, 1 hour on assignment
 */
 
 // Returns true iff pre is a prefix of str
 method isPrefix(pre: string, str: string) returns (res: bool) 
-//	requires |pre| > 0 && |str| > 0
 {
 	if (|pre| > |str|) {
 		return false;
 	}
-
-	var charsOfInterest := str[..|pre|];
-	assert |charsOfInterest| == |pre|;
 
 	return str[..|pre|] == pre;
 }
 
 // Returns true if sub is a substring of str
 method isSubstring(sub: string, str: string) returns (res: bool) 
-//	requires |sub| > 0 && |str| > 0
 {
 	var isAPrefix := isPrefix(sub,  str);
 
@@ -27,12 +25,16 @@ method isSubstring(sub: string, str: string) returns (res: bool)
 		return true;
 	}
 
+	// Ensure we can create a subtring ignoring first char
 	if (|str| <= 1) {
 		return false;
 	}
 	
-	var next := str[1..];
-	res :=  isSubstring(sub, next);
+	// Drop first character of string
+	var nextStringToCheck := str[1..];
+
+	// Recurse using the remaining chars 
+	res :=  isSubstring(sub, nextStringToCheck);
 }
 
 // Returns true iff str1 and str2 have a common substring of length k
@@ -52,6 +54,7 @@ method haveCommonKSubstring(k: nat, str1: string, str2: string) returns (found: 
 	}
 
 	// Create each substring of size k from the smaller string
+	// Use smaller string in loop to reduce number of iterations
 	var i := 0;
 	while (i <= |smaller| - k) {
 
@@ -76,6 +79,8 @@ method haveCommonKSubstring(k: nat, str1: string, str2: string) returns (found: 
 
 // Returns the length of the largest common substring of str1 and str2 (0 if no common substring)
 method maxCommonSubstringLength(str1: string, str2: string) returns (len: nat) {
+
+	// Calculate the max substring length	
 	var maxSubstringLength := |str1|;
 	if (|str2| < |str1|) {
 		maxSubstringLength := |str2|;
