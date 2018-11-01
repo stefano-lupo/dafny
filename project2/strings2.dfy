@@ -7,6 +7,7 @@
 		Most of the time was spent trying to figure out why certain approaches would fail in Dafny
 	Rowan Sutton:		13330793 - 3 Hours
 		About 2 of the 3 hours were spent debugging the substring and k substring premises
+	Average Hours: 3.5
 */
 
 predicate isPrefixPred(pre:string, str:string)
