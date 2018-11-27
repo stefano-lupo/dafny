@@ -2,11 +2,11 @@
 	isPrefix
 */
 predicate isPrefixPred(pre:string, str:string) {
-	(|pre| <= |str|) && pre == str[..|pre|]
+	|pre| > 0 && (|pre| <= |str|) && pre == str[..|pre|]
 }
 
 predicate isNotPrefixPred(pre:string, str:string) {
-	(|pre| > |str|) || pre != str[..|pre|]
+	|pre| <= 0 || (|pre| > |str|) || pre != str[..|pre|]
 }
 
 lemma PrefixNegationLemma(pre:string, str:string)
@@ -18,7 +18,7 @@ method isPrefix(pre: string, str: string) returns (res:bool)
 	ensures !res <==> isNotPrefixPred(pre,str)
 	ensures  res <==> isPrefixPred(pre,str)
 {
-		if (|pre| > |str|) {
+	if (|pre| > |str| || |pre| <= 0) {
 		return false;
 	}
 
@@ -34,11 +34,13 @@ method isPrefix(pre: string, str: string) returns (res:bool)
 	isSubstring
 */
 predicate isSubstringPred(sub:string, str:string) {
-	(exists i :: 0 <= i <= |str| &&  isPrefixPred(sub, str[i..]))
+	//(exists i :: 0 <= i < |str| &&  isPrefixPred(sub, str[i..]))
+	|sub| > 0 && |str| > 0 && |str| >= |sub| && (exists i :: 0 <= i < |str| - |sub| && isPrefixPred(sub, str[i..]))
 }
 
 predicate isNotSubstringPred(sub:string, str:string) {
-	(forall i :: 0 <= i <= |str| ==> isNotPrefixPred(sub,str[i..]))
+	//(forall i :: 0 <= i <= |str| ==> isNotPrefixPred(sub,str[i..]))
+	|sub| <= 0 || |str| <= 0 || (forall i :: 0 <= i <= |str| - |sub| ==> isNotPrefixPred(sub,str[i..]))
 }
 
 lemma SubstringNegationLemma(sub:string, str:string)
@@ -47,13 +49,62 @@ lemma SubstringNegationLemma(sub:string, str:string)
 
 {}
 
+// This not holding seems like a problem..
+lemma isPrefix_isSubstring(sub: string, str: string)
+	ensures isPrefixPred(sub, str) ==> isSubstringPred(sub, str)
+	//ensures isNotPrefixPred(sub, str) ==> isNotSubstringPred(sub, str)
+{}
+
+
+predicate containsSubstringAtIndices(sub:string, str:string, start:nat, end:nat) {
+	0 <= start < end < |str| && end - start == |sub| && 0 < |sub| <= |str| && str[start..end] == sub
+}
+
+lemma test(sub: string, str:string, start:nat, end:nat)
+ensures containsSubstringAtIndices(sub, str, start, end) <== isSubstringPred(sub, str)
+{}
+
 method isSubstring(sub: string, str: string) returns (res:bool)
-	ensures  res <==> isSubstringPred(sub, str)
+	ensures  res <== isSubstringPred(sub, str)
 	//ensures !res <==> isNotSubstringPred(sub, str) // This postcondition follows from the above lemma.
 {
+
+	// Short circuit false
+	if (|sub| <= 0 || |str| <= 0 || |sub| > |str|) {
+		return false;
+	}
+
+	var i := 0;
+	res := false;
+	while (true)
+	decreases |str| - (i + |sub|)
+	invariant |sub| <= i + |sub| <= |str|
+	invariant containsSubstringAtIndices(sub, str, i, i + |sub|) <== res
+	{
+		var endIndex := i + |sub|;
+		var truncatedStirng := str[..endIndex];
+		var pieceOfString := truncatedStirng[i..];
+		if (pieceOfString == sub) {
+			res := true;
+			assert isPrefixPred(sub, truncatedStirng[i..]);
+			return res;
+		}
+
+		if (endIndex < |str|) {
+				i := i + 1;
+		} else {
+			assert isNotSubstringPred(sub, str);
+			res := false;
+			return res;
+		}
+	}
+	
+/*
 	var isAPrefix := isPrefix(sub,  str);
 
 	if (isAPrefix) {
+		assert str[0..|sub|] == sub;
+		assert isSubstringPred(sub, str);
 		return true;
 	}
 
@@ -67,6 +118,7 @@ method isSubstring(sub: string, str: string) returns (res:bool)
 
 	// Recurse using the remaining chars 
 	res :=  isSubstring(sub, nextStringToCheck);
+	*/
 }
 
 
@@ -161,4 +213,9 @@ method maxCommonSubstringLength(str1: string, str2: string) returns (len:nat)
 
 	return len;
 
+}
+
+
+method main() {
+	var x := isPrefix("", "");
 }
