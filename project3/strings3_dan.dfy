@@ -68,8 +68,8 @@ lemma PrefixImpliesSubstringLemma(sub:string, str:string)
 // Doesn't hold for other way arounds though
 method isSubstring(sub: string, str: string) returns (res:bool)
 	ensures  res ==> isSubstringPred(sub, str)
-	//ensures isSubstringPred(sub, str) ==> res
-	//ensures !res ==> isNotSubstringPred(sub, str)
+	ensures isSubstringPred(sub, str) ==> res
+	ensures !res ==> isNotSubstringPred(sub, str)
 	ensures isNotSubstringPred(sub, str) ==> !res
 {
 
@@ -78,99 +78,21 @@ method isSubstring(sub: string, str: string) returns (res:bool)
 		return false;
 	}
 
-	res := isPrefix(sub, str);
-	if (res) {
-		assert(isPrefixPred(sub, str));
-		assert 
-		assert isPrefixPred(sub, str) ==> (exists x :: 0 <= x <= |str| - |sub| && isPrefixPred(sub, str[x..]));
-		return true;
-	}
-
-
 	var i := 0;
-	var lengthOfHeadStringChecked := i + |sub|;
-	var headString := str[..lengthOfHeadStringChecked];
-	
-	assert |str| - |sub| >= 0;
-	assert lengthOfHeadStringChecked <= |str|;
+  res := false;
 
-	while (true)
-
-	decreases (|str| - |sub|) - i
-
-	// |str| always >= sub, so i will always be less than or equal to length string
-	invariant 0 <= i <= (|str| - |sub|) < |str|
-
-	// If we don't short circuit the loop, then result should be false
-	invariant (i > |str| - |sub|) ==> !res
-
-	// The max this will ever be is |str| 
-	invariant lengthOfHeadStringChecked <= |str|
-	invariant |headString| <= |str|;
-	invariant headString == str[..lengthOfHeadStringChecked]
-
-	// If sub is not a prefix of str[i..], then str[..i+|sub|] is not a string
-	//invariant isNotPrefixPred(sub, str[i..]) ==> isNotSubstringPred(sub, headString)
-
-	// If we don't short circuit the loop, then sub is not a substring
-	invariant (i > |str| - |sub|) ==> 
-		(forall x :: 0 <= x < |str| ==> isPrefixPred(sub, str[x..]) == isNotSubstringPred(sub, str))
-
-	invariant isPrefixPred(sub, str[i..]) ==> (res == true)
-
-	//invariant (i > |str| - |sub|) ==> forall x :: 0 <= x <= |str| - |sub| ==> isNotSubstringPred(sub, str[x..])
-
-	// If the tail from a given index is not a prefix,
-	// Then the substring from [0..(i+|sub|)] is not a substring
-	// This would let dafny know that each iteration we are increasing how much of the start of the string
-	// is not a substring
-	//invariant movingEndIndex <= |str|
-	//invariant isNotPrefixPred(sub, str[i..]) ==> isNotSubstringPred(sub, str[..movingEndIndex])
-	//invariant isPrefixPred(sub, str[i..]) ==> isSubstringPred(sub, str[..movingEndIndex])
-
-
-	//invariant (i > |str| - |sub|) ==> (forall x :: 0 <= x <= |str| - |sub| ==> isNotPrefixPred(sub, str[x..]))
-	//invariant (i > |str| - |sub|) ==> isNotSubstringPred(sub, str)
+	while (i <= |str| - |sub| && !res)
+	decreases (|str| - |sub| - i) + (if res then 0 else 1)
+  invariant 0 <= i <= (|str| - |sub|) + 1
+  invariant res ==> isSubstringPred(sub, str)
+  invariant forall x :: 0 <= x < i ==> !isPrefixPred(sub, str[x..])
 	{
 		var tail := str[i..];
-		var isAPrefix := isPrefix(sub, tail);
-		if (isAPrefix) {
-			assert isPrefixPred(sub, tail);
-			assert isSubstringPred(sub, str);
-			res := true;
-			break;
-			//return true;
-		} else {
-			// Proves that the truncated tail is not a prefix / substring
-			assert isNotPrefixPred(sub, tail);
-			assert isNotSubstringPred(sub, tail[..|sub|]);
-			
-			// Needs to be able to prove that str truncated to (i + |sub|) is also not a substring
-			lengthOfHeadStringChecked := i + |sub|;
-			assert lengthOfHeadStringChecked <= |str|;
-			headString := str[..lengthOfHeadStringChecked];
-			//assert isNotSubstringPred(sub, str[..lengthOfHeadStringChecked]);
-			//movingEndIndex := i + |sub|;
-			//assert isNotSubstringPred(sub, str[..movingEndIndex]);
-			if (i < |str| - |sub|) {
-				i := i + 1;
-			} else {
-				break;
-			}
-		}
+		res := isPrefix(sub, tail);
+    if (!res) {
+      i := i +1;
+    }
 	}
-
-	if (!res) {
-		// Loop has run to compleition
-		assert |str| - |sub| ==  i;
-		//assert forall x :: 0 <= x <= |str| - |sub| ==> isNotPrefixPred(sub, str[x..]);
-		assert isNotSubstringPred(sub, str[i..]);
-	} else {
-		assert isSubstringPred(sub, str);
-		assert exists x :: 0 <= x <= |str| - |sub| && isPrefixPred(sub, str[x..]);
-	}
-
-	return res;
 }
 
 

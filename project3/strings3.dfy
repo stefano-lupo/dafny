@@ -65,60 +65,90 @@ ensures containsSubstringAtIndices(sub, str, start, end) <== isSubstringPred(sub
 {}
 
 method isSubstring(sub: string, str: string) returns (res:bool)
-	ensures  res <== isSubstringPred(sub, str)
-	//ensures !res <==> isNotSubstringPred(sub, str) // This postcondition follows from the above lemma.
+	ensures  res ==> isSubstringPred(sub, str)
+	//ensures isSubstringPred(sub, str) ==> res
+	//ensures !res ==> isNotSubstringPred(sub, str)
+	ensures isNotSubstringPred(sub, str) ==> !res
 {
 
-	// Short circuit false
-	if (|sub| <= 0 || |str| <= 0 || |sub| > |str|) {
+	// Short circuit exit
+	if !(0 < |sub| <= |str|) {
 		return false;
 	}
 
 	var i := 0;
 	res := false;
-	while (true)
-	decreases |str| - (i + |sub|)
-	invariant |sub| <= i + |sub| <= |str|
-	invariant containsSubstringAtIndices(sub, str, i, i + |sub|) <== res
+
+	while (i <= |sub| - |str| && !res)
+
+	// |str| always >= sub, so i will always be less than or equal to length string
+	invariant 0 <= i <= (|str| - |sub|) < |str|
+
+	// If we don't short circuit the loop, then result should be false
+	invariant (i > |str| - |sub|) ==> !res
+
+	// If sub is not a prefix of str[i..], then str[..i+|sub|] is not a string
+	//invariant isNotPrefixPred(sub, str[i..]) ==> isNotSubstringPred(sub, headString)
+
+	// If we don't short circuit the loop, then sub is not a substring
+	invariant (i > |str| - |sub|) ==> 
+		(forall x :: 0 <= x < |str| ==> isPrefixPred(sub, str[x..]) == isNotSubstringPred(sub, str))
+
+	invariant isPrefixPred(sub, str[i..]) ==> (res == true)
+
+	//invariant (i > |str| - |sub|) ==> forall x :: 0 <= x <= |str| - |sub| ==> isNotSubstringPred(sub, str[x..])
+
+	// If the tail from a given index is not a prefix,
+	// Then the substring from [0..(i+|sub|)] is not a substring
+	// This would let dafny know that each iteration we are increasing how much of the start of the string
+	// is not a substring
+	//invariant movingEndIndex <= |str|
+	//invariant isNotPrefixPred(sub, str[i..]) ==> isNotSubstringPred(sub, str[..movingEndIndex])
+	//invariant isPrefixPred(sub, str[i..]) ==> isSubstringPred(sub, str[..movingEndIndex])
+
+
+	//invariant (i > |str| - |sub|) ==> (forall x :: 0 <= x <= |str| - |sub| ==> isNotPrefixPred(sub, str[x..]))
+	//invariant (i > |str| - |sub|) ==> isNotSubstringPred(sub, str)
 	{
-		var endIndex := i + |sub|;
-		var truncatedStirng := str[..endIndex];
-		var pieceOfString := truncatedStirng[i..];
-		if (pieceOfString == sub) {
+		var tail := str[i..];
+		var isAPrefix := isPrefix(sub, tail);
+		if (isAPrefix) {
+			assert isPrefixPred(sub, tail);
+			assert isSubstringPred(sub, str);
 			res := true;
-			assert isPrefixPred(sub, truncatedStirng[i..]);
-			return res;
-		}
-
-		if (endIndex < |str|) {
-				i := i + 1;
+			break;
+			//return true;
 		} else {
-			assert isNotSubstringPred(sub, str);
-			res := false;
-			return res;
+			// Proves that the truncated tail is not a prefix / substring
+			assert isNotPrefixPred(sub, tail);
+			assert isNotSubstringPred(sub, tail[..|sub|]);
+			
+			// Needs to be able to prove that str truncated to (i + |sub|) is also not a substring
+			lengthOfHeadStringChecked := i + |sub|;
+			assert lengthOfHeadStringChecked <= |str|;
+			headString := str[..lengthOfHeadStringChecked];
+			//assert isNotSubstringPred(sub, str[..lengthOfHeadStringChecked]);
+			//movingEndIndex := i + |sub|;
+			//assert isNotSubstringPred(sub, str[..movingEndIndex]);
+			if (i < |str| - |sub|) {
+				i := i + 1;
+			} else {
+				break;
+			}
 		}
 	}
-	
-/*
-	var isAPrefix := isPrefix(sub,  str);
 
-	if (isAPrefix) {
-		assert str[0..|sub|] == sub;
+	if (!res) {
+		// Loop has run to compleition
+		assert |str| - |sub| ==  i;
+		//assert forall x :: 0 <= x <= |str| - |sub| ==> isNotPrefixPred(sub, str[x..]);
+		assert isNotSubstringPred(sub, str[i..]);
+	} else {
 		assert isSubstringPred(sub, str);
-		return true;
+		assert exists x :: 0 <= x <= |str| - |sub| && isPrefixPred(sub, str[x..]);
 	}
 
-	// Ensure we can create a subtring ignoring first char
-	if (|str| <= 1) {
-		return false;
-	}
-	
-	// Drop first character of string
-	var nextStringToCheck := str[1..];
-
-	// Recurse using the remaining chars 
-	res :=  isSubstring(sub, nextStringToCheck);
-	*/
+	return res;
 }
 
 

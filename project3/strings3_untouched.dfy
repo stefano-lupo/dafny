@@ -46,6 +46,16 @@ lemma SubstringNegationLemma(sub:string, str:string)
 	ensures !isSubstringPred(sub,str) <==>  isNotSubstringPred(sub,str)
 
 {}
+lemma PrefixImpliesSubstringLemma(sub:string, str:string) 
+	// The existance of an x such that sub is a prefix of str[x..] implies that sub is a substring of x
+	ensures (exists x :: 0 <= x <= |str| - |sub| && isPrefixPred(sub, str[x..])) ==> isSubstringPred(sub, str)
+	
+	// If sub is not a prefix of str[x..] for all x, then sub is not a substring of str
+	ensures (forall x :: 0 <= x <= |str| - |sub| ==> isNotPrefixPred(sub, str[x..])) ==> isNotSubstringPred(sub, str)
+
+	// Given that sub is a prefix of str implies sub is a substring of str (DOESNT HOLD!)
+{}
+	//ensures isPrefixPred(sub, str) ==> isSubstringPred(sub, str)
 
 method isSubstring(sub: string, str: string) returns (res:bool)
 	ensures  res <==> isSubstringPred(sub, str)
