@@ -2,11 +2,11 @@
 	isPrefix
 */
 predicate isPrefixPred(pre:string, str:string) {
-	|pre| > 0 && (|pre| <= |str|) && pre == str[..|pre|]
+	(|pre| <= |str|) && pre == str[..|pre|]
 }
 
 predicate isNotPrefixPred(pre:string, str:string) {
-	|pre| <= 0 || (|pre| > |str|) || pre != str[..|pre|]
+	(|pre| > |str|) || pre != str[..|pre|]
 }
 
 lemma PrefixNegationLemma(pre:string, str:string)
@@ -18,7 +18,7 @@ method isPrefix(pre: string, str: string) returns (res:bool)
 	ensures !res <==> isNotPrefixPred(pre,str)
 	ensures  res <==> isPrefixPred(pre,str)
 {
-	if (|pre| > |str| || |pre| <= 0) {
+	if (|pre| > |str|) {
 		return false;
 	}
 
@@ -58,7 +58,7 @@ method isSubstring(sub: string, str: string) returns (res:bool)
 {
 
 	// Short circuit exit
-	if !(0 < |sub| <= |str|) {
+	if !(|sub| <= |str|) {
 		return false;
 	}
 
