@@ -93,7 +93,7 @@ method isSubstring(sub: string, str: string) returns (res:bool)
 
 /*
 	K Substring
-
+*/
 predicate haveCommonKSubstringPred(k:nat, str1:string, str2:string) {
 	exists i1, j1 :: 0 <= i1 <= |str1|- k && (j1 == i1 + k) && isSubstringPred(str1[i1..j1],str2)
 }
@@ -109,7 +109,7 @@ lemma commonKSubstringLemma(k:nat, str1:string, str2:string)
 
 method haveCommonKSubstring(k: nat, str1: string, str2: string) returns (found: bool)
    // Trivial
-  ensures found  ==>  haveCommonKSubstringPred(k,str1,str2)
+  ensures found ==> haveCommonKSubstringPred(k,str1,str2)
   ensures haveNotCommonKSubstringPred(k,str1,str2) ==> !found
 
   // Not Trivial
@@ -122,33 +122,25 @@ method haveCommonKSubstring(k: nat, str1: string, str2: string) returns (found: 
 		return false;
 	}
 
-  var s1 := "";
-  var s2 := "";
-  assert s1 == s2;
-  assert s1[0..0] == s2[0..];
-
-
+  // All strings have common substring of length zero
   if (k == 0) {
-    //assert isPrefixPred(str1[0..0], str2[0..]);
-    //return true;
+    assert isPrefixPred(str1[0..0], str2[0..]);
+    assert haveCommonKSubstringPred(k, str1, str2);
+    return true;
   }
 
-	// Create each substring of size k from str1
 	var startIndex := 0;
-  var endIndex := startIndex + k;
   found := false;
+
+  // Create each substring of size k from str1
 	while (startIndex <= |str1| - k) 
   
-  //invariant 0 <= startIndex <= endIndex <= |str1|
-  //invariant found ==> haveCommonKSubstringPred(k, str1, str2)
-  //invariant isSubstringPred(str1[startIndex..endIndex], str2) ==> haveCommonKSubstringPred(k, str1, str2)
-  //invariant haveCommonKSubstringPred(k, str1[startIndex..endIndex], str2) ==> found
-	
+  // startIndex always within bounds of str1
+  invariant startIndex + k <= |str1| + 1 
+  // Invariant that proves we make progress towards the postcondition at each iteration
+  invariant forall si, ei :: 0 <= si < startIndex && ei == si + k ==> isNotSubstringPred(str1[si..ei], str2)	
 	{
-		endIndex := startIndex + k;
-
-		// Ensure largest index is the number of elements in sequence
-		// It can reach the number of elements in the sequence as slice is closed at end of interval 
+    var endIndex := startIndex + k;
 		assert endIndex <= |str1|;
 
 		// Get a substring of length k from str1							
