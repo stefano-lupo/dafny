@@ -46,7 +46,6 @@ lemma SubstringNegationLemma(sub:string, str:string)
 	ensures !isSubstringPred(sub,str) <==>  isNotSubstringPred(sub,str)
 {}
 
-
 method isSubstring(sub: string, str: string) returns (res:bool)
   // Dont even require invariants
 	ensures  res ==> isSubstringPred(sub, str)
@@ -91,9 +90,10 @@ method isSubstring(sub: string, str: string) returns (res:bool)
 
 
 
-/*
-	K Substring
-*/
+/*****************************************************************************
+* haveCommonKSubstring
+* Checks whether two strings have a common substring of size k
+*****************************************************************************/
 predicate haveCommonKSubstringPred(k:nat, str1:string, str2:string) {
 	exists i1, j1 :: 0 <= i1 <= |str1|- k && (j1 == i1 + k) && isSubstringPred(str1[i1..j1],str2)
 }
@@ -156,4 +156,35 @@ method haveCommonKSubstring(k: nat, str1: string, str2: string) returns (found: 
 	}
 
 	return false;
+}
+
+
+
+
+
+/*****************************************************************************
+* maxCommonSubstringLength
+* Finds the largest common substring between two strings
+* Assume: all strings have a common substring of length zero
+*****************************************************************************/
+method maxCommonSubstringLength(str1: string, str2: string) returns (len:nat)
+	requires (|str1| <= |str2|)
+	ensures (forall k :: len < k <= |str1| ==> !haveCommonKSubstringPred(k,str1,str2))
+	ensures haveCommonKSubstringPred(len,str1,str2)
+{
+	len := |str1|;
+	while (len > 0) 
+  // Invariant which shows we make progress towards post condition at each iteration
+  invariant forall x :: len < x <= |str1| ==> !haveCommonKSubstringPred(x, str1, str2)
+  {
+		var hasCommonSubstrOfLen := haveCommonKSubstring(len, str1, str2);
+		if (hasCommonSubstrOfLen) {
+			return len;
+		}
+		len := len - 1;
+	}
+  
+  // Help Dafny choose an existential
+  assert isPrefixPred(str1[0..0], str2[0..]);
+	return len;
 }
