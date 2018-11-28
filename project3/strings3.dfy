@@ -1,12 +1,13 @@
-/*
-	isPrefix
-*/
+/*****************************************************************************
+* isPrefix
+* Determines whether or not pre is a prefix of string
+*****************************************************************************/
 predicate isPrefixPred(pre:string, str:string) {
-	|pre| > 0 && (|pre| <= |str|) && pre == str[..|pre|]
+	(|pre| <= |str|) && pre == str[..|pre|]
 }
 
 predicate isNotPrefixPred(pre:string, str:string) {
-	|pre| <= 0 || (|pre| > |str|) || pre != str[..|pre|]
+	(|pre| > |str|) || pre != str[..|pre|]
 }
 
 lemma PrefixNegationLemma(pre:string, str:string)
@@ -18,7 +19,7 @@ method isPrefix(pre: string, str: string) returns (res:bool)
 	ensures !res <==> isNotPrefixPred(pre,str)
 	ensures  res <==> isPrefixPred(pre,str)
 {
-	if (|pre| > |str| || |pre| <= 0) {
+	if (|pre| > |str|) {
 		return false;
 	}
 
@@ -30,125 +31,58 @@ method isPrefix(pre: string, str: string) returns (res:bool)
 
 
 
-/*
-	isSubstring
-*/
+/*****************************************************************************
+* isSubstring
+* determines whether or not sub is a substring of str
+*****************************************************************************/
 predicate isSubstringPred(sub:string, str:string) {
-	//(exists i :: 0 <= i < |str| &&  isPrefixPred(sub, str[i..]))
-	|sub| > 0 && |str| > 0 && |str| >= |sub| && (exists i :: 0 <= i < |str| - |sub| && isPrefixPred(sub, str[i..]))
+  exists i :: 0 <= i <= |str| &&  isPrefixPred(sub, str[i..])
 }
 
 predicate isNotSubstringPred(sub:string, str:string) {
-	//(forall i :: 0 <= i <= |str| ==> isNotPrefixPred(sub,str[i..]))
-	|sub| <= 0 || |str| <= 0 || (forall i :: 0 <= i <= |str| - |sub| ==> isNotPrefixPred(sub,str[i..]))
+	forall i :: 0 <= i <= |str| ==> isNotPrefixPred(sub,str[i..])
 }
 
 lemma SubstringNegationLemma(sub:string, str:string)
 	ensures  isSubstringPred(sub,str) <==> !isNotSubstringPred(sub,str)
 	ensures !isSubstringPred(sub,str) <==>  isNotSubstringPred(sub,str)
-
-{}
-
-// This not holding seems like a problem..
-lemma isPrefix_isSubstring(sub: string, str: string)
-	ensures isPrefixPred(sub, str) ==> isSubstringPred(sub, str)
-	//ensures isNotPrefixPred(sub, str) ==> isNotSubstringPred(sub, str)
-{}
-
-
-predicate containsSubstringAtIndices(sub:string, str:string, start:nat, end:nat) {
-	0 <= start < end < |str| && end - start == |sub| && 0 < |sub| <= |str| && str[start..end] == sub
-}
-
-lemma test(sub: string, str:string, start:nat, end:nat)
-ensures containsSubstringAtIndices(sub, str, start, end) <== isSubstringPred(sub, str)
 {}
 
 method isSubstring(sub: string, str: string) returns (res:bool)
+  // Dont even require invariants
 	ensures  res ==> isSubstringPred(sub, str)
-	//ensures isSubstringPred(sub, str) ==> res
-	//ensures !res ==> isNotSubstringPred(sub, str)
 	ensures isNotSubstringPred(sub, str) ==> !res
+
+  // Require invariants
+  ensures isSubstringPred(sub, str) ==> res
+	ensures !res ==> isNotSubstringPred(sub, str)
 {
 
 	// Short circuit exit
-	if !(0 < |sub| <= |str|) {
+	if !(|sub| <= |str|) {
 		return false;
 	}
 
 	var i := 0;
-	res := false;
+  res := false;
 
-	while (i <= |sub| - |str| && !res)
-
-	// |str| always >= sub, so i will always be less than or equal to length string
-	invariant 0 <= i <= (|str| - |sub|) < |str|
-
-	// If we don't short circuit the loop, then result should be false
-	invariant (i > |str| - |sub|) ==> !res
-
-	// If sub is not a prefix of str[i..], then str[..i+|sub|] is not a string
-	//invariant isNotPrefixPred(sub, str[i..]) ==> isNotSubstringPred(sub, headString)
-
-	// If we don't short circuit the loop, then sub is not a substring
-	invariant (i > |str| - |sub|) ==> 
-		(forall x :: 0 <= x < |str| ==> isPrefixPred(sub, str[x..]) == isNotSubstringPred(sub, str))
-
-	invariant isPrefixPred(sub, str[i..]) ==> (res == true)
-
-	//invariant (i > |str| - |sub|) ==> forall x :: 0 <= x <= |str| - |sub| ==> isNotSubstringPred(sub, str[x..])
-
-	// If the tail from a given index is not a prefix,
-	// Then the substring from [0..(i+|sub|)] is not a substring
-	// This would let dafny know that each iteration we are increasing how much of the start of the string
-	// is not a substring
-	//invariant movingEndIndex <= |str|
-	//invariant isNotPrefixPred(sub, str[i..]) ==> isNotSubstringPred(sub, str[..movingEndIndex])
-	//invariant isPrefixPred(sub, str[i..]) ==> isSubstringPred(sub, str[..movingEndIndex])
-
-
-	//invariant (i > |str| - |sub|) ==> (forall x :: 0 <= x <= |str| - |sub| ==> isNotPrefixPred(sub, str[x..]))
-	//invariant (i > |str| - |sub|) ==> isNotSubstringPred(sub, str)
+	while (i <= |str| - |sub|)
+  invariant res ==> isSubstringPred(sub, str)
+  invariant i <= |str| - |sub| + 1
+  invariant forall x :: 0 <= x < i ==> isNotPrefixPred(sub, str[x..])
 	{
 		var tail := str[i..];
 		var isAPrefix := isPrefix(sub, tail);
 		if (isAPrefix) {
 			assert isPrefixPred(sub, tail);
 			assert isSubstringPred(sub, str);
-			res := true;
-			break;
-			//return true;
+			return true;
 		} else {
-			// Proves that the truncated tail is not a prefix / substring
 			assert isNotPrefixPred(sub, tail);
 			assert isNotSubstringPred(sub, tail[..|sub|]);
-			
-			// Needs to be able to prove that str truncated to (i + |sub|) is also not a substring
-			lengthOfHeadStringChecked := i + |sub|;
-			assert lengthOfHeadStringChecked <= |str|;
-			headString := str[..lengthOfHeadStringChecked];
-			//assert isNotSubstringPred(sub, str[..lengthOfHeadStringChecked]);
-			//movingEndIndex := i + |sub|;
-			//assert isNotSubstringPred(sub, str[..movingEndIndex]);
-			if (i < |str| - |sub|) {
-				i := i + 1;
-			} else {
-				break;
-			}
+      i := i + 1;
 		}
 	}
-
-	if (!res) {
-		// Loop has run to compleition
-		assert |str| - |sub| ==  i;
-		//assert forall x :: 0 <= x <= |str| - |sub| ==> isNotPrefixPred(sub, str[x..]);
-		assert isNotSubstringPred(sub, str[i..]);
-	} else {
-		assert isSubstringPred(sub, str);
-		assert exists x :: 0 <= x <= |str| - |sub| && isPrefixPred(sub, str[x..]);
-	}
-
-	return res;
 }
 
 
@@ -156,15 +90,17 @@ method isSubstring(sub: string, str: string) returns (res:bool)
 
 
 
-/*
-	K Substring
-*/
+
+/*****************************************************************************
+* haveCommonKSubstring
+* Checks whether two strings have a common substring of size k
+*****************************************************************************/
 predicate haveCommonKSubstringPred(k:nat, str1:string, str2:string) {
-	exists i1, j1 :: 0 <= i1 <= |str1|- k && j1 == i1 + k && isSubstringPred(str1[i1..j1],str2)
+  exists i1, j1 :: 0 <= i1 <= |str1|- k && j1 == i1 + k && isSubstringPred(str1[i1..j1],str2)
 }
 
 predicate haveNotCommonKSubstringPred(k:nat, str1:string, str2:string) {
-	forall i1, j1 :: 0 <= i1 <= |str1|- k && j1 == i1 + k ==>  isNotSubstringPred(str1[i1..j1],str2)
+  forall i1, j1 :: 0 <= i1 <= |str1|- k && j1 == i1 + k ==>  isNotSubstringPred(str1[i1..j1],str2)
 }
 
 lemma commonKSubstringLemma(k:nat, str1:string, str2:string)
@@ -173,41 +109,56 @@ lemma commonKSubstringLemma(k:nat, str1:string, str2:string)
 {}
 
 method haveCommonKSubstring(k: nat, str1: string, str2: string) returns (found: bool)
-	ensures found  <==>  haveCommonKSubstringPred(k,str1,str2)
-	//ensures !found <==> haveNotCommonKSubstringPred(k,str1,str2) // This postcondition follows from the above lemma.
+   // Trivial
+  ensures found ==> haveCommonKSubstringPred(k,str1,str2)
+  ensures haveNotCommonKSubstringPred(k,str1,str2) ==> !found
+
+  // Not Trivial
+  ensures haveCommonKSubstringPred(k,str1,str2) ==> found
+	ensures !found ==> haveNotCommonKSubstringPred(k,str1,str2)
 {
-// If either strings are smaller than k, they have no common substring of size k
+  // If either strings are smaller than k, they have no common substring of size k
 	if (|str1| < k || |str2| < k) {
+		assert haveNotCommonKSubstringPred(k, str1, str2);
 		return false;
 	}
 
-	// Find the smaller and larger of the two strings
-	var smaller := str1;
-	var larger := str2;
-	if (|str2| < |str1|) {
-		smaller := str2;
-		larger := str1;
-	}
+  // All strings have common substring of length zero
+  if (k == 0) {
+    assert isPrefixPred(str1[0..0], str2[0..]);
+    assert haveCommonKSubstringPred(k, str1, str2);
+    return true;
+  }
 
-	// Create each substring of size k from the smaller string
-	// Use smaller string in loop to reduce number of iterations
-	var i := 0;
-	while (i <= |smaller| - k) {
+	var startIndex := 0;
+  found := false;
 
-		// Ensure largest index is the number of elements in sequence
-		// It can reach the number of elements in the sequence as slice is closed at end of interval 
-		assert (i + k) <= |smaller|;
+  // Create each substring of size k from str1
+	while (startIndex <= |str1| - k) 
+  
+  // startIndex always within bounds of str1
+  // This requires + 1 as i is incremented once we reach fo the end of the string
+  invariant startIndex + k <= |str1| + 1 
 
-		// Get a substring of length k from smaller							
-		var substr := smaller[i..i+k];
+  // Invariant that proves we make progress towards the postcondition at each iteration
+  // At each iteration, we know that all the substrings of str1 of length k starting from BEFORE
+  // startIndex are not substrings of str2
+  invariant forall si, ei :: 0 <= si < startIndex && ei == si + k ==> isNotSubstringPred(str1[si..ei], str2)	
+	
+  {
+    var endIndex := startIndex + k;
+		assert endIndex <= |str1|;
+
+		// Get a substring of length k from str1							
+		var substr := str1[startIndex..endIndex];
 		assert |substr| == k;
 
-		var isSubstr := isSubstring(substr, larger);
+		var isSubstr := isSubstring(substr, str2);
 		if (isSubstr) {
 			return true;
 		}
 
-		i := i + 1;
+		startIndex := startIndex + 1;
 	}
 
 	return false;
@@ -216,36 +167,30 @@ method haveCommonKSubstring(k: nat, str1: string, str2: string) returns (found: 
 
 
 
-/*
-	maxCommonSubstringLength
-*/
+
+/*****************************************************************************
+* maxCommonSubstringLength
+* Finds the largest common substring between two strings
+* Assume: all strings have a common substring of length zero
+*****************************************************************************/
 method maxCommonSubstringLength(str1: string, str2: string) returns (len:nat)
 	requires (|str1| <= |str2|)
 	ensures (forall k :: len < k <= |str1| ==> !haveCommonKSubstringPred(k,str1,str2))
 	ensures haveCommonKSubstringPred(len,str1,str2)
 {
-
-
-	// Calculate the max substring length	
-	var maxSubstringLength := |str1|;
-	if (|str2| < |str1|) {
-		maxSubstringLength := |str2|;
-	}
-
-	len := maxSubstringLength;
-	while (len > 0) {
+	len := |str1|;
+	while (len > 0) 
+  // Invariant which shows we make progress towards post condition at each iteration
+  invariant forall x :: len < x <= |str1| ==> !haveCommonKSubstringPred(x, str1, str2)
+  {
 		var hasCommonSubstrOfLen := haveCommonKSubstring(len, str1, str2);
 		if (hasCommonSubstrOfLen) {
 			return len;
 		}
 		len := len - 1;
 	}
-
+  
+  // Help Dafny choose an existential
+  assert isPrefixPred(str1[0..0], str2[0..]);
 	return len;
-
-}
-
-
-method main() {
-	var x := isPrefix("", "");
 }
