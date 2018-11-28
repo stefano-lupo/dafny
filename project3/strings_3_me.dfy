@@ -1,6 +1,7 @@
-/*
-	isPrefix
-*/
+/*****************************************************************************
+* isPrefix
+* Determines whether or not pre is a prefix of string
+*****************************************************************************/
 predicate isPrefixPred(pre:string, str:string) {
 	(|pre| <= |str|) && pre == str[..|pre|]
 }
@@ -30,9 +31,10 @@ method isPrefix(pre: string, str: string) returns (res:bool)
 
 
 
-/*
-	isSubstring
-*/
+/*****************************************************************************
+* isSubstring
+* determines whether or not sub is a substring of str
+*****************************************************************************/
 predicate isSubstringPred(sub:string, str:string) {
   exists i :: 0 <= i <= |str| &&  isPrefixPred(sub, str[i..])
 }
@@ -65,9 +67,8 @@ method isSubstring(sub: string, str: string) returns (res:bool)
   res := false;
 
 	while (i <= |str| - |sub|)
-	decreases (|str| - |sub| - i)
   invariant res ==> isSubstringPred(sub, str)
-  invariant i <= |str|
+  invariant i <= |str| - |sub| + 1
   invariant forall x :: 0 <= x < i ==> isNotPrefixPred(sub, str[x..])
 	{
 		var tail := str[i..];
@@ -95,11 +96,11 @@ method isSubstring(sub: string, str: string) returns (res:bool)
 * Checks whether two strings have a common substring of size k
 *****************************************************************************/
 predicate haveCommonKSubstringPred(k:nat, str1:string, str2:string) {
-	exists i1, j1 :: 0 <= i1 <= |str1|- k && (j1 == i1 + k) && isSubstringPred(str1[i1..j1],str2)
+  exists i1, j1 :: 0 <= i1 <= |str1|- k && j1 == i1 + k && isSubstringPred(str1[i1..j1],str2)
 }
 
 predicate haveNotCommonKSubstringPred(k:nat, str1:string, str2:string) {
-	forall i1, j1 :: 0 <= i1 <= |str1|- k && (j1 == i1 + k) ==>  isNotSubstringPred(str1[i1..j1],str2)
+  forall i1, j1 :: 0 <= i1 <= |str1|- k && j1 == i1 + k ==>  isNotSubstringPred(str1[i1..j1],str2)
 }
 
 lemma commonKSubstringLemma(k:nat, str1:string, str2:string)
@@ -136,10 +137,15 @@ method haveCommonKSubstring(k: nat, str1: string, str2: string) returns (found: 
 	while (startIndex <= |str1| - k) 
   
   // startIndex always within bounds of str1
+  // This requires + 1 as i is incremented once we reach fo the end of the string
   invariant startIndex + k <= |str1| + 1 
+
   // Invariant that proves we make progress towards the postcondition at each iteration
+  // At each iteration, we know that all the substrings of str1 of length k starting from BEFORE
+  // startIndex are not substrings of str2
   invariant forall si, ei :: 0 <= si < startIndex && ei == si + k ==> isNotSubstringPred(str1[si..ei], str2)	
-	{
+	
+  {
     var endIndex := startIndex + k;
 		assert endIndex <= |str1|;
 
