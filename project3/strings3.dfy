@@ -1,3 +1,19 @@
+/* 
+	CS4504 - Formal Verification
+	Dr Vasileios Koutavas
+	Group Assignment 3 - Verification of String methods
+	Stefano Lupo:		14334933 - 6 hours 
+		About 4/5 hours were spent trying to get isSubstring to verify
+		The problem was that isPrefix doesn't imply isSubstring
+		However once that was figured out, the rest of the assignment only took about an hour or so
+	Rowan Sutton:		13330793 - 5 Hours
+		About 4 hours working on isSubstring as above
+		1 Hour working on verifying the rest of the methods
+	Average Hours: 5.5
+*/
+
+
+
 /*****************************************************************************
 * isPrefix
 * Determines whether or not pre is a prefix of string
